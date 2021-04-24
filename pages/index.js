@@ -13,85 +13,131 @@ import userService from '../services/services'
 
 const Component = () => {
   const [session, loading] = useSession();
+  const [user, setUser] = useState();
+  const [playlists, setPlaylists] = useState();
   const [recentTracks, setRecentTracks] = useState([])
   const [allTimeTracks, setAllTimeTracks] = useState([])
   const [sixMonthTracks, setSixMonthTracks] = useState([])
   const [lastMonthTracks, setLastMonthTracks] = useState([])
   const [currentTab, setCurrentTab] = useState("recentTracks")
+  const [currentTracks, setCurrentTracks] = useState();
 
   useEffect(() => {
     if (session) {
-      // userService.getRecentTracks(session.accessToken)
-      // .then(res => {
-      //     let data = res.data.items;
-      //     let trackData = data.map((x) => {
-      //       return x.track;
-      //     })
-      //     setRecentTracks(trackData);
-      //   })
-      //   .catch(err => console.log(err))
+      userService.getUser(session.accessToken)
+      .then(res => {
+        setUser(res.data);
+        return res.data;
+      })
+      .then(res => {
+        return userService.getPlaylists(session.accessToken, res.id)
+      })
+      .then(res => setPlaylists(res.data.items))
+
+      console.log("test")
       updateTracksView('recentTracks');
     }
   }, [session])
 
-  const getallTimeTracks = (e) => {
-    e.preventDefault();
-    if (allTimeTracks.length < 1) {
-      axios.get('https://api.spotify.com/v1/me/top/tracks?time_range=long_term&limit=50', {
-        headers: { 'Authorization': 'Bearer ' + session.accessToken }
-      })
-        .then(res => {
-          let data = res.data.items;
-          setAllTimeTracks(data);
-        })
-        .then(setCurrentTab("allTimeTracks"))
-        .catch(err => console.log(err))
-    }
-  }
-
-  const updateTracksView = (trackType) => {
-    console.log("test")
-
+  const updateTracksView = (trackType, event) => {
+    
     switch(trackType){
       case 'recentTracks':
-        
+        console.log("wrtrggr")
         if(!recentTracks.length){
-          console.log("zzzzzz")
           userService.getRecentTracks(session.accessToken)
-            .then(res => {
+            .then( res => {
               let trackData = res.data.items.map(x => x.track);
-              setRecentTracks(trackData);
-              console.log("recentTrack: ", recentTracks)
+              return trackData;
+            }).then(res => {
+              setRecentTracks(res);
+              setCurrentTab("recentTracks");
+              setCurrentTracks(recentTracks);
+            })
+        } else{
+          setCurrentTab("recentTracks");
+          setCurrentTracks(recentTracks);
+          console.log("wfwf", currentTracks)
+        }
+        break;
+        
+      case 'allTimeTracks':
+        console.log("wrtrggr")
+        if(!allTimeTracks.length){
+          userService.getallTimeTracks(session.accessToken)
+            .then( res => {
+              let trackData = res.data.items;
+              return trackData;
+            }).then(res => {
+              setAllTimeTracks(res);
+              setCurrentTab("allTimeTracks");
+              setCurrentTracks(allTimeTracks);
             })
         }
-        setCurrentTab("recentTracks");
-      case 'allTimeTracks':
-        setCurrentTab("allTimeTracks");
+        else{
+          setCurrentTab("allTimeTracks");
+          setCurrentTracks(allTimeTracks);
+        }
+        break;
       case 'sixMonthTracks':
-        setCurrentTab("sixMonthTracks");
+        console.log("wrtrggr")
+        if(!sixMonthTracks.length){
+          userService.getSixMonthTracks(session.accessToken)
+            .then( res => {
+              let trackData = res.data.items;
+              return trackData;
+            }).then(res => {
+              setSixMonthTracks(res);
+              setCurrentTab("sixMonthTracks");
+              setCurrentTracks(sixMonthTracks);
+            })
+        } else{
+          setCurrentTab("sixMonthTracks");
+          setCurrentTracks(sixMonthTracks);
+        }
+        break;
       case 'lastMonthTracks':
-        setCurrentTab("lastMonthTracks");
+        console.log("wrtrggr")
+        if(!lastMonthTracks.length){
+          userService.getLastMonthTracks(session.accessToken)
+            .then( res => {
+              let trackData = res.data.items;
+              return trackData;
+            }).then(res => {
+              setLastMonthTracks(res);
+              setCurrentTab("lastMonthTracks");
+              setCurrentTracks(lastMonthTracks);
+            })
+        } else{
+          setCurrentTab("lastMonthTracks");
+          setCurrentTracks(lastMonthTracks);
+        }
+        break;
     }
   }
 
-  if (session) {
+  if (session && user && currentTracks) {
     return (
       <>
-        Signed in as {session.user.email} <br />
+        Signed in as {user.display_name} <br />
 
         <ul>
-          <li><a href="#">Recently Played</a></li>
-          <li><a href="#" onClick={(e) => updateTracksView(e, "test")}>All Time</a></li>
-          <li><a href="#">6 Months</a></li>
-          <li><a href="#">Last Month</a></li>
+          <li><button  onClick={(e) => updateTracksView("recentTracks", e)}>Recently Played</button></li>
+          <li><button  onClick={(e) => updateTracksView("allTimeTracks", e)}>All Time</button></li>
+          <li><button  onClick={(e) => updateTracksView("sixMonthTracks", e)}>6 Months</button></li>
+          <li><button  onClick={(e) => updateTracksView("lastMonthTracks", e)}>Last Month</button></li>
+          
         </ul>
 
-        {currentTab === "recentTracks" && <Table tracks={recentTracks} />}
-        {currentTab === "allTimeTracks" && <Table tracks={allTimeTracks} />}
+        <button onClick={() => userService.createPlaylist(session.accessToken, user.id)}>Create Playlist </button>
 
         
 
-        <button onClick={() => signOut()}>Sign out</button>
+        {currentTracks && <Table tracks={currentTracks} />}
+
+        
+
+        <button onClick={() => signOut(user.id)}>Sign out</button>
       </>
     )
   }

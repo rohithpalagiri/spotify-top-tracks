@@ -22,7 +22,7 @@ export default NextAuth({
       // Add property to session, like an access_token from a provider.
       console.log("session: ", session)
       console.log("token: ", token)
-      session.accessToken = token.accessToken
+      session.accessToken = token.accessToken;
       return session
     }
   }
