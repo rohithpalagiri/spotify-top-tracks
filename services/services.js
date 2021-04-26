@@ -51,14 +51,13 @@ const getallTimeTracks = (token) => {
     return request.then((response) => response);
   }
 
-  const createPlaylist = (token, userId) => {
+  const createPlaylist = (token, userId, playlistName) => {
 
     const request = axios({
       method: 'post',
       url: `https://api.spotify.com/v1/users/${userId}/playlists`,
       data: {
-        "name": "New Playlist",
-        "description": "New playlist description",
+        "name": playlistName,
       },
       headers: { Authorization: "Bearer " + token },
     });
@@ -66,4 +65,18 @@ const getallTimeTracks = (token) => {
     return request.then((response) => response);
   }
 
-export default {getRecentTracks, getallTimeTracks, getSixMonthTracks, getLastMonthTracks, getUser, getPlaylists, createPlaylist};
+  const updatePlaylist = (token, playlistId, tracks) => {
+
+    const request = axios({
+      method: 'put',
+      url: `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
+      data: {
+        uris: tracks
+      },
+      headers: { Authorization: "Bearer " + token },
+    });
+
+    return request.then((response) => response).catch(err => console.log("error: ", err));
+  }
+
+export default {getRecentTracks, getallTimeTracks, getSixMonthTracks, getLastMonthTracks, getUser, getPlaylists, createPlaylist, updatePlaylist};

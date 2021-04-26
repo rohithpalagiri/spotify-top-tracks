@@ -5,7 +5,6 @@ import {
 } from 'next-auth/client'
 
 //Components
-import Track from '../components/Track'
 import Table from '../components/Table'
 
 //Services
@@ -33,17 +32,21 @@ const Component = () => {
         return userService.getPlaylists(session.accessToken, res.id)
       })
       .then(res => setPlaylists(res.data.items))
-
-      console.log("test")
       updateTracksView('recentTracks');
     }
   }, [session])
+
+  const playlistAlias = {
+    recentTracks: "Recently Played",
+    lastMonthTracks: "Last Month",
+    sixMonthTracks: "Last Six Months",
+    allTimeTracks: "All Time",
+  }
 
   const updateTracksView = (trackType, event) => {
     
     switch(trackType){
       case 'recentTracks':
-        console.log("wrtrggr")
         if(!recentTracks.length){
           userService.getRecentTracks(session.accessToken)
             .then( res => {
@@ -51,18 +54,15 @@ const Component = () => {
               return trackData;
             }).then(res => {
               setRecentTracks(res);
-              setCurrentTab("recentTracks");
-              setCurrentTracks(recentTracks);
+              setCurrentTracks(res);
             })
         } else{
           setCurrentTab("recentTracks");
           setCurrentTracks(recentTracks);
-          console.log("wfwf", currentTracks)
         }
         break;
         
       case 'allTimeTracks':
-        console.log("wrtrggr")
         if(!allTimeTracks.length){
           userService.getallTimeTracks(session.accessToken)
             .then( res => {
@@ -71,7 +71,7 @@ const Component = () => {
             }).then(res => {
               setAllTimeTracks(res);
               setCurrentTab("allTimeTracks");
-              setCurrentTracks(allTimeTracks);
+              setCurrentTracks(res);
             })
         }
         else{
@@ -80,7 +80,6 @@ const Component = () => {
         }
         break;
       case 'sixMonthTracks':
-        console.log("wrtrggr")
         if(!sixMonthTracks.length){
           userService.getSixMonthTracks(session.accessToken)
             .then( res => {
@@ -89,7 +88,7 @@ const Component = () => {
             }).then(res => {
               setSixMonthTracks(res);
               setCurrentTab("sixMonthTracks");
-              setCurrentTracks(sixMonthTracks);
+              setCurrentTracks(res);
             })
         } else{
           setCurrentTab("sixMonthTracks");
@@ -97,7 +96,6 @@ const Component = () => {
         }
         break;
       case 'lastMonthTracks':
-        console.log("wrtrggr")
         if(!lastMonthTracks.length){
           userService.getLastMonthTracks(session.accessToken)
             .then( res => {
@@ -106,7 +104,7 @@ const Component = () => {
             }).then(res => {
               setLastMonthTracks(res);
               setCurrentTab("lastMonthTracks");
-              setCurrentTracks(lastMonthTracks);
+              setCurrentTracks(res);
             })
         } else{
           setCurrentTab("lastMonthTracks");
@@ -116,10 +114,27 @@ const Component = () => {
     }
   }
 
+  const playlistHandler = () => {
+      let plName = playlistAlias[currentTab];
+
+      let foundPlaylist = playlists.find((x) => x.name === plName);
+
+      let tracks = currentTracks.map((x) => x.uri);
+
+      if(foundPlaylist !== undefined){
+        userService.updatePlaylist(session.accessToken, foundPlaylist.id, tracks);
+      } else{
+        userService.createPlaylist(session.accessToken, user.id, plName)
+        .then(res => userService.updatePlaylist(session.accessToken, res.data.id, tracks))
+        .catch(err => console.log(err))
+      }
+  }
+
   if (session && user && currentTracks) {
     return (
       <>
         Signed in as {user.display_name} <br />
+        <button onClick={() => signOut(user.id)}>Sign out</button>
 
         <ul>
           <li><button  onClick={(e) => updateTracksView("recentTracks", e)}>Recently Played</button></li>
@@ -129,15 +144,9 @@ const Component = () => {
           
         </ul>
 
-        <button onClick={() => userService.createPlaylist(session.accessToken, user.id)}>Create Playlist </button>
+        <button onClick={playlistHandler}>Create Playlist </button>
 
-        
-
-        {currentTracks && <Table tracks={currentTracks} />}
-
-        
-
-        <button onClick={() => signOut(user.id)}>Sign out</button>
+        <Table tracks={currentTracks} />
       </>
     )
   }
